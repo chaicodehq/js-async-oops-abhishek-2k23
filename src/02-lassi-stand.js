@@ -72,16 +72,69 @@
  *   isLassiStand({});                       // => false
  */
 export function LassiStand(name, city) {
-  // Your code here
+  this.name = name
+  this.city = city
+  this.menu = []
+  this.orders = []
+  this._nextOrderId = 1
 }
 
 // Add prototype methods here:
-// LassiStand.prototype.addFlavor = function(flavor, price) { ... }
-// LassiStand.prototype.takeOrder = function(customerName, flavor, quantity) { ... }
-// LassiStand.prototype.completeOrder = function(orderId) { ... }
-// LassiStand.prototype.getRevenue = function() { ... }
-// LassiStand.prototype.getMenu = function() { ... }
+LassiStand.prototype.addFlavor = function (flavor, price) {
+  if (price <= 0) return -1
+
+  let hasFlavour = this.menu.filter((f) => f.flavor === flavor).length === 0
+
+  if (hasFlavour) {
+    this.menu.push({ flavor, price })
+    return this.menu.length
+  } else {
+    return -1
+  }
+}
+
+LassiStand.prototype.takeOrder = function (customerName, flavor, quantity) {
+  if (quantity <= 0) return -1
+
+  let flavorInfo = this.menu.filter((m) => m.flavor === flavor)
+  if (flavorInfo.length === 0) {
+    return -1
+  }
+
+  let order = {
+    id: this._nextOrderId,
+    customer: customerName,
+    flavor,
+    quantity,
+    total: flavorInfo[0].price * quantity,
+    status: "pending",
+  }
+  this.orders.push(order)
+  this._nextOrderId++
+  return order.id
+}
+LassiStand.prototype.completeOrder = function (orderId) {
+  if (typeof orderId !== "number" || !Number.isInteger(orderId)) {
+    return false
+  }
+  let order = this.orders.filter((ord) => ord.id === orderId)
+  if (order.length === 0 || order[0].status === "completed") {
+    return false
+  }
+  order[0].status = "completed"
+  return true
+}
+LassiStand.prototype.getRevenue = function () {
+  const completedOrders = this.orders.filter(
+    (order) => order.status === "completed",
+  )
+  console.log(completedOrders);
+  return completedOrders.reduce((sum, order) => sum + order.total, 0)
+}
+LassiStand.prototype.getMenu = function () {
+  return [...this.menu]
+}
 
 export function isLassiStand(obj) {
-  // Your code here
+  return obj instanceof LassiStand
 }

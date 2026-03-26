@@ -99,25 +99,132 @@
  *   // => [{ pnr: "PNR...", ...}, { pnr: "PNR...", ...}]
  */
 export async function checkSeatAvailability(trainNumber, date, classType) {
-  // Your code here
+  const classTypes = ["SL", "3A", "2A", "1A"]
+  return new Promise((res, rej) => {
+    if (typeof trainNumber !== "string" || trainNumber.length !== 5) {
+      return rej(new Error("Invalid train number! 5 digit hona chahiye."))
+    } else if (!classTypes.includes(classType)) {
+      return rej(new Error("Invalid class type!"))
+    } else if (typeof date !== "string" || !date.trim()) {
+      return rej(new Error("Date required hai!"))
+    } else {
+      return res({
+        trainNumber,
+        date,
+        classType,
+        seats: Math.floor(Math.random() * 50),
+        waitlist: Math.floor(Math.random() * 20),
+        available: true,
+      })
+    }
+  })
 }
 
 export async function bookTicket(passenger, trainNumber, date, classType) {
-  // Your code here
+  const { name, age, gender } = passenger
+  if (!name || !age || !gender) {
+    return null
+  }
+
+  const fares = { SL: 250, "3A": 800, "2A": 1200, "1A": 2000 }
+  const seatAvailable = await checkSeatAvailability(
+    trainNumber,
+    date,
+    classType,
+  )
+
+  return new Promise((res, rej) => {
+    if (seatAvailable.seats > 0) {
+      res({
+        pnr: "PNR" + Math.floor(Math.random() * 1000000),
+        passenger,
+        trainNumber,
+        date,
+        class: classType,
+        status: "confirmed",
+        fare: fares[classType],
+      })
+    } else {
+      return rej(
+        new Error({
+          status: "waitlisted",
+          waitlistNumber: Math.floor(Math.random() * 20) + 1,
+        }),
+      )
+    }
+  })
 }
 
 export async function cancelTicket(pnr) {
-  // Your code here
+  return new Promise((res, rej) => {
+    if (typeof pnr !== "string" || !pnr.trim() || !pnr.startsWith("PNR")) {
+      rej(new Error("Invalid PNR number!"))
+    } else {
+      setTimeout(() => {
+        res({
+          pnr,
+          status: "cancelled",
+          refund: Math.floor(Math.random() * (1000 - 100 + 1)) + 100,
+        })
+      }, 100)
+    }
+  })
 }
 
 export async function getBookingStatus(pnr) {
-  // Your code here
+  const statusArray = ["confirmed", "waitlisted", "cancelled"]
+  return new Promise((res, rej) => {
+    if (typeof pnr !== "string" || !pnr.trim() || !pnr.startsWith("PNR")) {
+      rej(new Error("Invalid PNR number!"))
+    } else {
+      res({
+        pnr,
+        status: statusArray[Math.floor(Math.random() * statusArray.length)],
+        lastUpdated: new Date().toISOString(),
+      })
+    }
+  })
 }
 
-export async function bookMultipleTickets(passengers, trainNumber, date, classType) {
-  // Your code here
+export async function bookMultipleTickets(
+  passengers,
+  trainNumber,
+  date,
+  classType,
+) {
+  if (passengers.length === 0) return []
+  const result = []
+  for (const pass of passengers) {
+    try {
+      const bookingDetails = await bookTicket(
+        pass,
+        trainNumber,
+        date,
+        classType,
+      )
+      result.push(bookingDetails)
+    } catch (e) {
+      result.push({ pass, error: e.message })
+    }
+  }
+
+  return result
 }
 
 export async function raceBooking(trainNumbers, passenger, date, classType) {
-  // Your code here
+  const bookingPromises = trainNumbers.map((trainNumber) =>
+    bookTicket(passenger, trainNumber, date, classType).then((res) => {
+      
+      if (res.status === "waitlisted") {
+        throw new Error("No seat here");
+      }
+      return res;
+    })
+  );
+
+  try {
+    return await Promise.any(bookingPromises);
+  } catch (error) {
+    throw new Error("Koi bhi train mein seat nahi mili!");
+  }
 }

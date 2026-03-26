@@ -76,30 +76,91 @@
  */
 export class DabbaService {
   constructor(serviceName, area) {
-    // Your code here
+    this.serviceName = serviceName;
+    this.area = area;
+    this.customers = [];
+    this._nextId = 1;
   }
 
   addCustomer(name, address, mealPreference) {
-    // Your code here
+    const validPrefs = ["veg", "nonveg", "jain"];
+
+    if (!validPrefs.includes(mealPreference)) return null;
+
+    const exists = this.customers.find(c => c.name === name);
+    if (exists) return null;
+
+    const customer = {
+      id: this._nextId++,
+      name,
+      address,
+      mealPreference,
+      active: true,
+      delivered: false
+    };
+
+    this.customers.push(customer);
+    return customer;
   }
 
   removeCustomer(name) {
-    // Your code here
+    const customer = this.customers.find(c => c.name === name);
+
+    if (!customer || !customer.active) return false;
+
+    customer.active = false;
+    return true;
   }
 
   createDeliveryBatch() {
-    // Your code here
+    const activeCustomers = this.customers.filter(c => c.active);
+
+    if (activeCustomers.length === 0) return [];
+
+    activeCustomers.forEach(c => c.delivered = false);
+
+    return activeCustomers.map(c => ({
+      customerId: c.id,
+      name: c.name,
+      address: c.address,
+      mealPreference: c.mealPreference,
+      batchTime: new Date().toISOString()
+    }));
   }
 
   markDelivered(customerId) {
-    // Your code here
+    const customer = this.customers.find(
+      c => c.id === customerId && c.active
+    );
+
+    if (!customer) return false;
+
+    customer.delivered = true;
+    return true;
   }
 
   getDailyReport() {
-    // Your code here
+    const activeCustomers = this.customers.filter(c => c.active);
+
+    const deliveredCount = activeCustomers.filter(c => c.delivered).length;
+
+    const mealBreakdown = activeCustomers.reduce(
+      (acc, c) => {
+        acc[c.mealPreference]++;
+        return acc;
+      },
+      { veg: 0, nonveg: 0, jain: 0 }
+    );
+
+    return {
+      totalCustomers: activeCustomers.length,
+      delivered: deliveredCount,
+      pending: activeCustomers.length - deliveredCount,
+      mealBreakdown
+    };
   }
 
   getCustomer(name) {
-    // Your code here
+    return this.customers.find(c => c.name === name) || null;
   }
 }
