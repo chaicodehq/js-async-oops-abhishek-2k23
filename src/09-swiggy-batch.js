@@ -88,25 +88,73 @@
  *   //     { status: "rejected", reason: "Item name required!" }]
  */
 export function prepareOrder(item, prepTime) {
-  // Your code here
+  return new Promise((res, rej) => {
+    if (!item || typeof item !== "string" || !item.trim()) {
+      rej(new Error("Item name required!"))
+    }
+
+    if (typeof prepTime !== "number" || prepTime <= 0) {
+      rej(new Error("Invalid prep time!"))
+    }
+
+    setTimeout(() => {
+      res({ item, ready: true, prepTime })
+    }, prepTime)
+  })
 }
 
 export function prepareBatch(items) {
-  // Your code here
+  if (items.length === 0) return Promise.resolve([])
+  const promises = items.map((item) => prepareOrder(item.name, item.prepTime))
+
+  return Promise.all(promises)
 }
 
 export function getFirstReady(items) {
-  // Your code here
+  if (items.length === 0) return Promise.reject(new Error("No items to prepare!"))
+  const promises = items.map((item) => prepareOrder(item.name, item.prepTime))
+
+  return Promise.race(promises)
 }
 
 export function prepareSafeBatch(items) {
-  // Your code here
+  if (items.length === 0) return Promise.resolve([])
+  const promises = items.map((item) => prepareOrder(item.name, item.prepTime))
+  return Promise.allSettled(promises).then((result) => {
+    return result.map((res) => ({
+      [res.status === "fulfilled" ? "value" : "reason"]:
+        res.status === "fulfilled" ? res.value : res.reason.message,
+        
+      status: res.status,
+    }))
+  })
 }
 
 export function deliverWithTimeout(orderPromise, timeoutMs) {
-  // Your code here
+  if(timeoutMs <= 0) return Promise.reject(new Error("Invalid timeout!"));
+  return Promise.race([
+    orderPromise,
+    new Promise((_, rej) =>
+      setTimeout(() => rej(new Error("Delivery timeout!")), timeoutMs),
+    ),
+  ])
 }
 
-export function batchWithRetry(items, maxRetries) {
-  // Your code here
+export async function batchWithRetry(items, maxRetries) {
+  if (maxRetries < 0) {
+    throw new Error("Invalid retries!");
+  }
+  let attempt = 0;
+
+  while (attempt <= maxRetries) {
+    try {
+      const result = await prepareBatch(items);
+      return result;
+    } catch (error) {
+      attempt++;
+      if (attempt > maxRetries) {
+        throw error;
+      }
+    }
+  }
 }
