@@ -145,12 +145,16 @@ export async function bookTicket(passenger, trainNumber, date, classType) {
         fare: fares[classType],
       })
     } else {
-      return rej(
-        new Error({
-          status: "waitlisted",
-          waitlistNumber: Math.floor(Math.random() * 20) + 1,
-        }),
-      )
+      res({
+        pnr: "PNR" + Math.floor(Math.random() * 1000000),
+        passenger,
+        trainNumber,
+        date,
+        class: classType,
+        status: "waitlisted",
+        waitlistNumber: Math.floor(Math.random() * 20) + 1,
+        fare: fares[classType],
+      })
     }
   })
 }
